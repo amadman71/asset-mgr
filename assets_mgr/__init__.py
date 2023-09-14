@@ -163,14 +163,14 @@ class AssetsManager():
     This allows you store your images in a permanent location, such as ~/Google Drive/My Drive/assets
     and imposes a standardized hierarchy
     {assets_dir}/
-        sources/
+        images/
             {image1_basename}/
                 {image1_basename}-orig.{image1_file_extension}
                 {image1_basename}-256x256.{image1_file_extension}
             {image2_basename}/
                 {image2_basename}-orig.{image2_file_extension}
                 {image2_basename}-512x512.{image2_file_extension}
-        drivers/
+        videos/
             {driver1_basename}/
                 orig/
                     {driver1_basename}-orig.{}
@@ -268,6 +268,7 @@ class AssetsManager():
 
 
     def get_thumbnail(self, base_name):
+        print(base_name)
         return self.get_image(base_name, 128, 128)
     
 
@@ -276,15 +277,35 @@ class AssetsManager():
         determines file extension for image identified by base_name and if it a variant with
         the desired dimensions doesn't already exists, creates and saves one prior to returning it
         """
-        noExt = self.images_path / Path(base_name) / Path(f"{base_name}-{width}-{height}")
+        noExt = self.images_path / Path(base_name) / Path(f"{base_name}-{width}x{height}")
+        print(noExt)
         matches = glob(f"{noExt}.*")
-        if matches:
+        print(matches)
+        if len(matches):
             return read_image(matches[0])
         else:
             orig = glob(f"{self.images_path}/{base_name}/{base_name}-orig.*")[0]
+            print(orig)
             orig_img = read_image(orig)
-            return resize_image(orig_img, width, height)
+            resized = resize_image(orig_img, width, height)
+            write_image(f"{noExt}.png", resized)
+            return resized
 
     def get_thumbnails(self):
-        thumbs = {basename(dirname(thumb)): read_image(thumb) for thumb in sorted(glob(f"/{self.images_path}/**/*-128x128.*"))}
+        thumbs = {basename(dirname(thumb)): thumb for thumb in sorted(glob(f"{self.images_path}/**/*-128x128.*"))}
         return thumbs
+
+
+    def add_image(self, path):
+        bn = basename(path)
+        no_ext, ext = splitext(bn)
+        img = read_image(path)
+        new_folder = f"{self.images_path}/{no_ext}"
+        # print(new_folder)
+        makedirs(new_folder, exist_ok=True)
+        orig_img_path = f"{new_folder}/{no_ext}-orig.png"
+        if not exists(orig_img_path):
+            print(orig_img_path)
+            write_image(orig_img_path, img)
+        self.get_thumbnail(no_ext)
+
